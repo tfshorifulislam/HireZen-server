@@ -27,6 +27,36 @@
     });
 
 
+    const verifyToken = async (req, res, next) => {
+        const token = req?.headers?.authorization;
+        console.log('token with headers', token);
+    
+        if (!token) {
+            return res.status(401).send({ message: 'Unauthorized' });
+        }
+    
+        const tokenParts = token?.split(' ')[1];
+        console.log('token parts', tokenParts);
+    
+        if (!tokenParts) {
+            return res.status(401).send({ message: 'Unauthorized' });
+        }
+    
+    
+        try {
+            const { payload } = await jwtVerify(tokenParts, JWKS)
+            req.user = payload;
+            console.log('payload', payload);
+            next();
+        }
+        catch (error) {
+            console.log('token is not verify', error);
+            return res.status(401).send({ message: 'Unauthorized' });
+        }
+    }
+      
+
+
 
     async function run() {
         try {
@@ -36,7 +66,7 @@
             const companyInfoCollection = database.collection('company_info');
 
             // this is for the recruiter data collection or Api's;
-            app.post('/companyInfo', async (req, res) => {
+            app.post('/companyInfo', verifyToken, async (req, res) => {
                 const companyInfo = req.body;
                 const result = await companyInfoCollection.insertOne(companyInfo);
                 res.send(result);
